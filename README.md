@@ -1,2 +1,2 @@
 # Flask-Messaging
-A real time web based chat application written in Python and Javascript, utilizing the micro-framework Flask.
+A real time web based (instant) private messaging application written in Python and Javascript, utilizing SocketIO and Flask.
