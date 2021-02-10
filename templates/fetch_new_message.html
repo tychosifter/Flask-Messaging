@@ -1,0 +1,39 @@
+
+						{% for message in message_thread %}
+
+                    <div id="{{ message.url }}" class="ui items">
+                       <div class="ui secondary segment" style="margin-right:10px;">
+                        <div class="item">
+                        <div class="content">
+
+                               <div class="ui label"><i class="address card outline icon"></i>
+			                    {% if current_user.username == message.sender_id %}
+			                    <a class="header">You</a> sent
+			                    {% else %}
+			                    <a class="header">{{ message.sender_id }}</a> sent
+			                    {% endif %}
+                                </div>
+
+														<div class="ui label"><i class="clock icon"></i>{{ moment(message.timestamp).calendar() }}</div>
+
+			               <div class="ui raised segment">
+                          <div class="description">
+
+                            <p>{{ message.body }}</p>
+                          </div>
+                           </div>
+
+                           <br>
+
+                          <div class="extra">
+
+                            <button class="ui orange basic button mini right floated" onclick="delete_message( '{{message.url}}', 'message')">
+                            <i class="trash icon"></i><span id="{{ 'delete_'+message.url }}">Delete</span>
+                            </button><br><br>
+
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                   </div>
+            {% endfor %}

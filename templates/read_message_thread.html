@@ -1,0 +1,308 @@
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.min.css">
+<script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
+
+{% block scripts %}
+{{ moment.include_moment() }}
+{% endblock %}
+
+
+
+<div class="ui four column grid">
+
+  <div class="two wide computer only column"></div>
+
+  <div class="two wide computer only column">
+
+  </div>
+
+      <div class="nine wide computer sixteen wide mobile column">
+
+        <div style="margin-top:20px;" class="ui container">
+
+          <div id="message_flash" class="ui hidden success message" data-autohide="5">
+              <i class="close icon"></i>
+              Message Successfully Deleted!
+          </div>
+
+          <a href="{{ url_for('.messages') }}">
+          <button class="ui labeled icon button">
+            <i class="left arrow icon"></i>
+            Return To Inbox
+          </button>
+          </a>
+
+          <button class="ui labeled icon button" onclick="delete_message( '{{thread_id}}', 'thread');">
+            <i class="red trash icon"></i><span id="delete_thread">
+            Delete All</span>
+          </button>
+
+
+        </div>
+
+        <div class="ui container segment">
+          <div id="message_feed" class="ui feed" style="overflow-y:auto; max-height: 450px;">
+
+						{% if thread_count > 5 %}
+						<div id="fetch_messages_button">
+						<center>
+						<button class="circular ui icon blue button" onclick="old_messages()">
+							<i class="icon history"></i>
+							Load Older Messages
+						</button>
+						</center>
+						</div>
+						{% endif %}
+
+						<div id="begin_messages"></div>
+
+            {% for message in message_thread %}
+
+                    <div id="{{ message.url }}" class="ui items">
+                       <div class="ui secondary segment" style="margin-right:10px;">
+                        <div class="item">
+                        <div class="content">
+
+
+
+                                <div class="ui label"><i class="address card outline icon"></i>
+			                    {% if current_user.username == message.sender_id %}
+			                    <a class="header">You</a> sent
+			                    {% else %}
+			                    <a class="header">{{ message.sender_id }}</a> sent
+			                    {% endif %}
+                                </div>
+
+                                <div class="ui label"><i class="clock icon"></i>{{ moment(message.timestamp).calendar() }}</div>
+
+			               <div class="ui raised segment">
+                          <div class="description">
+
+                            <p>{{ message.body }}</p>
+                          </div>
+                           </div>
+
+                           <br>
+
+                          <div class="extra">
+
+                            <button class="ui orange basic button mini right floated" onclick="delete_message( '{{message.url}}', 'message')">
+                            <i class="trash icon"></i><span id="{{ 'delete_'+message.url }}">Delete</span>
+                            </button><br><br>
+
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                   </div>
+            {% endfor %}
+
+          </div>
+
+        </div>
+
+
+        <div class="ui container segment">
+
+        <form class="ui fluid form">
+              <div class="field">
+                <textarea id="new_message" placeholder="Message" rows="4"></textarea>
+              </div>
+
+        </form>
+
+          <br>
+
+          <div id="topreplyvalerror"></div>
+
+          <button class="ui primary button" onclick="send_message();">Send</button>
+
+        </div>
+
+
+
+
+
+      </div>
+
+
+  <div class="three wide computer only column"></div>
+
+
+</div>
+
+
+
+<script>
+
+var thread_id = "{{ request.args.get('thread_id') }}"
+
+var socket = io.connect('/messages', {rememberTransport: false})
+
+
+socket.on(thread_id, function(data){
+
+			socket_fetch = $.ajax({
+									method: 'GET',
+									url: "{{ url_for('.message_socket')}}"+'?url='+data.message_url+'&read=True'
+								});
+
+	socket_fetch.done(function(responseObject){
+
+		if( $('#message_feed')[0].scrollHeight - $('#message_feed').scrollTop() - $('#message_feed').outerHeight() < 1 ){
+
+			$('#message_feed').append(responseObject.message)
+			$("#message_feed").scrollTop($("#message_feed")[0].scrollHeight);
+		}
+		else{
+			$('#message_feed').append(responseObject.message)
+		}
+		flask_moment_render_all()
+})
+});
+
+
+function old_messages(){
+
+var top_comment_url = document.getElementById('begin_messages').nextElementSibling.id
+
+	fetch_ajax = $.ajax({
+		method: "GET",
+		url: window.location.href+'&fetch='+top_comment_url,
+	})
+
+	fetch_ajax.done(
+		function(responseObject){
+			if(responseObject.status == 200){
+				$(responseObject.fetched_messages).insertAfter("#begin_messages")
+
+					if(responseObject.offsetcnt == 0){
+						$('#fetch_messages_button').html('')
+					}
+				flask_moment_render_all()
+			}
+
+		}
+	)
+
+};
+
+
+
+function send_message(){
+
+  if($('#new_message').val() == ''){
+    if(document.getElementById("topreplyvalerror").innerHTML == ''){
+        document.getElementById("topreplyvalerror").innerHTML = 'Your message needs something in it.<br><br>'
+        return;
+      }
+    else{
+      return;
+    }
+  }
+
+
+
+
+  var send_message = $.ajax({
+    method: 'POST',
+    type: 'POST',
+    url: "{{url_for('.sendmessage')}}",
+
+    data: JSON.stringify({recipient_id: "{{ recip }}",
+                          subject: "",
+                          body: $('#new_message').val(),
+                          thread_id: "{{ thread_id }}"}),
+
+    dataType: "json",
+    contentType: "application/json",
+
+  })
+
+  send_message.done(
+    function(responseObject){
+      if(responseObject.status == 200){
+				$('#new_message').val('');
+				document.getElementById("topreplyvalerror").innerHTML = ''
+      }
+    }
+  )
+
+
+}
+
+
+function delete_message(url, type){
+
+  if(type == "thread"){
+    if(!window['thread_del_confirm']){
+      window['thread_del_confirm'] = true
+      document.getElementById('delete_thread').innerHTML = 'Are you sure? Click to confirm.'
+      return;
+    }
+    else{
+    }
+  }
+  else{
+    if(!window[url+'_delconf']){
+      window[url+'_delconf'] = true
+      document.getElementById('delete_'+url).innerHTML = 'Are you sure? Click to confirm.'
+      return;
+    }
+    else{
+
+    }
+  }
+
+
+
+	var delete_ajax = $.ajax({
+	method: 'POST',
+	type: 'POST',
+	url: "{{ url_for('.message_delete') }}",
+
+	data: JSON.stringify({
+		 url: url,
+		 type: type
+	 }),
+
+	dataType: "json",
+	contentType: "application/json",
+})
+
+
+};
+
+socket.on("{{ current_user.websocket_id+'_notify_deletion' }}", function(data){
+	if(data.type == 'message' && data.thread_id == thread_id){
+		if(data.total_messages == 0){
+			window.location.href = "{{ url_for('.messages') }}"
+		}
+		else{
+
+			$('#'+data.message_url).remove();
+			$('#message_flash').removeClass('hidden')
+				window.setTimeout(function() { $("#message_flash").addClass('hidden'); }, 5000);
+		}
+	}
+	if(data.type == 'thread' && data.thread_id == thread_id){
+		window.location.href = "{{ url_for('.messages') }}"
+	}
+})
+
+
+$("#message_feed").scrollTop($("#message_feed")[0].scrollHeight);
+
+
+
+
+
+
+</script>
+
+
+{% endblock %}

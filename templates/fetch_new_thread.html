@@ -1,0 +1,30 @@
+{% for message in messages %}
+	{% if message.thread_id in unread_threads_list %}
+	{% set unread_thread_class = "ui green segment" %}
+	{% set unread_thread_cir_class = "green circle icon" %}
+	{% else %}
+	{% set unread_thread_class = "ui segment" %}
+	{% set unread_thread_cir_class = "circle outline icon" %}
+	{% endif %}
+<div id="{{ message.thread_id }}">
+<a href='{{ url_for('.messages', thread_id=message.thread_id) }}'>
+<div id="{{ message.thread_id+'_thread_notify' }}" class="{{ unread_thread_class }}" style="white-space:nowrap; overflow: hidden; text-overflow: ellipsis;">
+
+										<i id="{{ message.thread_id+'_thread_notify_cir' }}" class="{{ unread_thread_cir_class }}"></i>
+
+										<div style="margin-left:25px;">
+														<div style="margin-top:5px; margin-bottom:5px;" class="top aligned content"> <i class="address card outline icon"></i>
+														{{ message.sender_id }}
+														</div>
+														<div style="margin-top:5px; margin-bottom:5px;" class="middle aligned content"><i class="pencil alternate icon"></i>
+														{{ message.subject }}
+														</div>
+														<div style="margin-top:5px; margin-bottom:5px;" class="bottom aligned content"><i class="clock icon"></i>
+														{{ moment(message.timestamp).calendar() }}
+														</div>
+										</div>
+</div>
+</a>
+<br>
+</div>
+{% endfor %}

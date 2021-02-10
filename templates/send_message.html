@@ -1,0 +1,106 @@
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.min.css">
+<script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.min.js"></script>
+
+<div style="margin-top:20px;" class="ui container">
+
+	<a href="{{ url_for('.messages') }}">
+	<button class="ui labeled icon button">
+		<i class="left arrow icon"></i>
+		Return To Inbox
+	</button>
+	</a>
+</div>
+
+
+<div class="ui container segment">
+
+
+
+<div class="ui four column row">
+
+
+
+		<form class="ui fluid form">
+
+	    <input id="recipient_id_field" type="text" placeholder="Send To">
+
+			<div id="usernamecheckalert" class="ui hidden pointing basic label"></div><br><br>
+
+			<input id="subject_field" type="text" placeholder="Subject" maxlength="70"><br><br>
+
+             <div class="field">
+                <textarea id="new_message" placeholder="Message" rows="4"></textarea>
+              </div>
+            </div>
+
+
+	</form><br>
+
+	<div id="topreplyvalerror"></div>
+
+	<button class="ui primary button" onclick="send_message()">Send</button>
+
+
+</div></div>
+
+
+
+<script>
+
+function send_message(){
+
+  if(document.getElementById("new_message").value == ''){
+    if(document.getElementById("topreplyvalerror").innerHTML == ''){
+        document.getElementById("topreplyvalerror").innerHTML = 'Your message needs something in it.<br><br>'
+        return;
+      }
+    else{
+      return;
+    }
+  }
+	if(!$("#recipient_id_field").val()){
+		$("#usernamecheckalert").text("This field is required.")
+		$("#usernamecheckalert").removeClass("hidden")
+		return;
+	}
+
+document.getElementById("recipient_id_field").reportValidity()
+
+
+  var send_message = $.ajax({
+    method: 'POST',
+    type: 'POST',
+    url: "{{url_for('.sendmessage')}}",
+
+    data: JSON.stringify({recipient_id: $('#recipient_id_field').val(),
+                          subject: $('#subject_field').val(),
+                          body: $('#new_message').val()
+                        }),
+
+    dataType: "json",
+    contentType: "application/json",
+
+  })
+
+  send_message.done(
+    function(responseObject){
+      if(responseObject.status == 200){
+        window.location.href = "{{ url_for('.messages') }}"
+      }
+			if(responseObject.error){
+				$("#usernamecheckalert").text(responseObject.error)
+        $("#usernamecheckalert").removeClass("hidden")
+      }
+
+    }
+  )
+
+
+}
+
+</script>
+
+{% endblock %}
